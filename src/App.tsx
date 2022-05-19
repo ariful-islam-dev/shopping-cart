@@ -3,6 +3,7 @@ import { AddShoppingCart } from "@material-ui/icons";
 import React, { useState } from "react";
 import { useQuery } from "react-query";
 import { StyledButton, Wrapper } from "./App.styles";
+import Cart from "./Cart/Cart";
 import Item from "./Item/item";
 
 export type CartItemType = {
@@ -20,14 +21,46 @@ const getProducts = async (): Promise<CartItemType[]> =>
 
 function App() {
   const [cartOpen, setCartOpen] = useState(false);
-  const [cartItems, setCartitems] = useState([] as CartItemType[]);
+  const [cartItems, setCartItems] = useState([] as CartItemType[]);
   const { data, isLoading, error } = useQuery<CartItemType[]>(
     "products",
     getProducts
   );
-  const getTotalItem = (items: CartItemType[]) => null;
-  const handleAddToCart = (clickedItem: CartItemType) => null;
-  const handleRemoveFromCard = () => null;
+
+  console.log(cartItems);
+
+  const getTotalItem = (items: CartItemType[]) =>
+    items.reduce((acc: number, items) => acc + items.amount, 0);
+
+  const handleAddToCart = (clickedItem: CartItemType) => {
+    setCartItems((prev) => {
+      const isItemInCart = prev.find((item) => item.id === clickedItem.id);
+
+      //Item already exist
+      if (isItemInCart) {
+        return prev.map((item) =>
+          item.id === clickedItem.id
+            ? { ...item, amount: item.amount + 1 }
+            : item
+        );
+      }
+
+      //First time the item is added
+      return [...prev, { ...clickedItem, amount: 1 }];
+    });
+  };
+  const handleRemoveFromCard = (id: number) => {
+    setCartItems((prev) =>
+      prev.reduce((acc, item) => {
+        if (item.id === id) {
+          if (item.amount === 1) return acc;
+          return [...acc, { ...item, amount: item.amount - 1 }];
+        } else {
+          return [...acc, item];
+        }
+      }, [] as CartItemType[])
+    );
+  };
 
   if (isLoading) return <LinearProgress />;
   if (error) return <div>Something went wrong....</div>;
@@ -35,7 +68,11 @@ function App() {
   return (
     <Wrapper>
       <Drawer anchor="right" open={cartOpen} onClose={() => setCartOpen(false)}>
-        Cart Gose Here
+        <Cart
+          cartItems={cartItems}
+          addToCart={handleAddToCart}
+          removeFromCart={handleRemoveFromCard}
+        />
       </Drawer>
       <StyledButton
         onClick={() => setCartOpen(true)}
